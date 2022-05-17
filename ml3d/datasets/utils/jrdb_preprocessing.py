@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
+import math
 import os, sys
 from os.path import exists, join, isfile, dirname, abspath, split
 from glob import glob
@@ -11,7 +12,7 @@ import rospy
 import ros_numpy
 import torch
 
-from .calibration_imported import OmniCalibration
+from ml3d.datasets.utils.calibration_imported import OmniCalibration
 import json
 
 class JRDBPreprocessing():
@@ -98,10 +99,16 @@ class JRDBPreprocessing():
                         towrite = []
                         box = person['box']
                         for attr in box:
-                            towrite.appenc(box[attr])
+                            towrite.append(box[attr])
                         # change order to fit BEVBox3D
                         # x, y, z, width, height, depth, yaw
                         towrite[3], towrite[4:] = towrite[-1], towrite[3:-1]
+                        # BEVBox3D yaw is 0 yaw angle at -y direction
+                        if float(towrite[-1])+(math.pi/2) > 2*math.pi:
+                            val = float(towrite[-1])
+                            # Add pi/2 since yaw starts at +x
+                            val -= 3*math.pi/2
+                            towrite[-1] = str(val)
                         label_file.write(" ".join(str(item) for item in towrite))
                         # label and confidence for BEVBox3D
                         label_file.write(' Pedestrian -1.0\n')
@@ -112,6 +119,7 @@ class JRDBPreprocessing():
 if __name__ == '__main__':
     if len(sys.argv) == 3:
         print('Input argument for dataset_path: ',sys.argv[1],' Input calib_folder: ',sys.argv[2])
+        print('Note: roscore required for numpy_ros functionalities.')
         proc = JRDBPreprocessing(dataset_path=sys.argv[1],calib_folder=sys.argv[2])
     else:
         print('No input argument given. Must use two arguments: jrdb dataset path, folder where the calibration yaml files exist.')
