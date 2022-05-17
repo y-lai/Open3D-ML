@@ -35,17 +35,26 @@ class JRDBPreprocessing():
         self.joined_dataset_path_full = join(self.dataset_path_full,'both_velodyne')
         if not os.path.exists(self.joined_dataset_path_full):
             os.mkdir(self.joined_dataset_path_full)
-            os.chmod(self.joined_dataset_path_full,0o775)
+            os.chmod(self.joined_dataset_path_full,0o755)
             os.chown(self.joined_dataset_path_full,1000,1000)
 
         if self.no_labels == False:
             self.joined_labels = join(self.dataset_path_full,'labels')
             if not os.path.exists(self.joined_labels):
                 os.mkdir(self.joined_labels)
-                os.chmod(self.joined_labels,0o775)
+                os.chmod(self.joined_labels,0o755)
                 os.chown(self.joined_labels,1000,1000)
 
         self.merge_pointclouds(self.upper_folders)
+
+        if self.no_labels == False:
+            for root, dirs, files in os.walk(self.joined_labels):
+                for momo in dirs:
+                    os.chmod(join(root,momo),0o755)
+                    os.chown(join(root, momo), 1000, 1000)
+                for momo in files:
+                    os.chmod(join(root,momo),0o755)
+                    os.chown(join(root, momo), 1000, 1000)
 
 
     def merge_pointclouds(self,upper_folders):
