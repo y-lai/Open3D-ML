@@ -1,7 +1,6 @@
 import numpy as np
 from os.path import exists, join, isfile, dirname, abspath, split
 from pathlib import Path
-import json
 from glob import glob
 import logging
 
@@ -49,7 +48,7 @@ class JRDB(BaseDataset):
             JRDBPreprocessing(calib_folder=self.calib_folder,dataset_path=self.train_dataset_path)
         if not Path(join(self.test_dataset_path,'both_velodyne')).exists():
             print('Testing dataset has not been pre-processed. Initialising pre-process')
-            JRDBPreprocessing(calib_folder=self.calib_folder,dataset_path=self.test_dataset_path)
+            JRDBPreprocessing(calib_folder=self.calib_folder,dataset_path=self.test_dataset_path,no_labels=True)
 
         assert(Path(join(self.train_dataset_path,'both_velodyne')).exists())
         assert(Path(join(self.test_dataset_path,'both_velodyne')).exists())
@@ -86,10 +85,23 @@ class JRDB(BaseDataset):
         return np.asarray(pointcloud.points)
 
     def read_label(self, path):
-        # read JSON file for labels
+        # read txt file for labels
         label = []
+        if not Path(path).exists():
+            return []
+        with open(path, 'r') as f:
+            lines = f.readlines()
+        objects = []
+        for line in lines:
+            label = line.strip().split(' ')
 
-        return label
+            center = [float(label[0]),float(label[1]),float(label[2])]
+            size = [float(label[3]),float(label[4]),float(label[5])]
+            yaw = float(label[6])
+            label_class = label[7]
+            confidence = float(label[8])
+            objects.append(BEVBox3D(center,size,yaw,label_class,confidence))
+        return objects
 
     def save_test_result(self, results, attrs):
         make_dir(self.cfg.test_result_folder)
@@ -109,11 +121,12 @@ class JRDBSplit():
         self.dataset = dataset
         self.path_list = []
         # show path list of train or test
-        if self.split=='train':
+        if self.split=='training':
             self.path_list = dataset.train_files
-        else:
+        if self.split=='validation':
+            self.path_list = dataset.val_files
+        if self.split=='test':
             self.path_list = dataset.test_files
-
 
     def __len__(self):
         return len(self.path_list)

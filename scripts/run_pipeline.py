@@ -55,23 +55,26 @@ def parse_args():
     return args, vars(args_extra)
 
 
-import open3d.ml as _ml3d
+# import open3d.ml as _ml3d
+import ml3d as _ml3d
+import ml3d.utils as _mlutils
+# import ml3d.utils
 
 
 def main():
     cmd_line = ' '.join(sys.argv[:])
     args, extra_dict = parse_args()
 
-    framework = _ml3d.utils.convert_framework_name(args.framework)
-    args.device = _ml3d.utils.convert_device_name(args.device)
+    framework = _mlutils.convert_framework_name(args.framework)
+    args.device = _mlutils.convert_device_name(args.device)
     rng = np.random.default_rng(args.seed)
     if framework == 'torch':
-        import open3d.ml.torch as ml3d
+        import ml3d.torch as ml3d_
     else:
         os.environ[
             'TF_CPP_MIN_LOG_LEVEL'] = '1'  # Disable INFO messages from tf
         import tensorflow as tf
-        import open3d.ml.tf as ml3d
+        import ml3d.tf as ml3d_
 
         device = args.device
         gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -90,15 +93,14 @@ def main():
                 print(e)
 
     if args.cfg_file is not None:
-        cfg = _ml3d.utils.Config.load_from_file(args.cfg_file)
-
-        Pipeline = _ml3d.utils.get_module("pipeline", cfg.pipeline.name,
-                                          framework)
-        Model = _ml3d.utils.get_module("model", cfg.model.name, framework)
-        Dataset = _ml3d.utils.get_module("dataset", cfg.dataset.name)
+        cfg = _mlutils.Config.load_from_file(args.cfg_file)
+        
+        Pipeline = _mlutils.get_module("pipeline", cfg.pipeline.name, framework)
+        Model = _mlutils.get_module("model", cfg.model.name, framework)
+        Dataset = _mlutils.get_module("dataset", cfg.dataset.name)
 
         cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model = \
-                        _ml3d.utils.Config.merge_cfg_file(cfg, args, extra_dict)
+                        _mlutils.Config.merge_cfg_file(cfg, args, extra_dict)
 
         cfg_dict_dataset['seed'] = rng
         cfg_dict_model['seed'] = rng
@@ -121,13 +123,13 @@ def main():
             raise ValueError("Please specify pipeline, model, and dataset " +
                              "if no cfg_file given")
 
-        Pipeline = _ml3d.utils.get_module("pipeline", args.pipeline, framework)
-        Model = _ml3d.utils.get_module("model", args.model, framework)
-        Dataset = _ml3d.utils.get_module("dataset", args.dataset)
+        Pipeline = _mlutils.get_module("pipeline", args.pipeline, framework)
+        Model = _mlutils.get_module("model", args.model, framework)
+        Dataset = _mlutils.get_module("dataset", args.dataset)
 
 
         cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model = \
-                        _ml3d.utils.Config.merge_module_cfg_file(args, extra_dict)
+                        _mlutils.Config.merge_module_cfg_file(args, extra_dict)
 
         cfg_dict_dataset['seed'] = rng
         cfg_dict_model['seed'] = rng

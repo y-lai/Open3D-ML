@@ -9,20 +9,22 @@ from open3d_ros_helper import open3d_ros_helper as orh
 
 import rospy
 import ros_numpy
-from sensor_msgs.msg import PointCloud2
 import torch
 
 from .calibration_imported import OmniCalibration
+import json
 
 class JRDBPreprocessing():
     ''''Pre-processing class to merge pointcloud from both velodynes on the JackRabbot.'''
     def __init__(self,
                  calib_folder,
-                 dataset_path):
+                 dataset_path,
+                 no_labels=False):
         rospy.init_node('jrdb_preprocessing_node',anonymous=True)
         self.calib_folder = calib_folder
         self.calib = OmniCalibration(calib_folder=self.calib_folder)
         self.dataset_path_full = dataset_path
+        self.no_labels = no_labels
         
         # JRDB dataset has identical folder names between upper and lower velodyne.
         self.upper_folders = glob(join(self.dataset_path_full, 'upper_velodyne','*'))
@@ -34,7 +36,15 @@ class JRDBPreprocessing():
             os.mkdir(self.joined_dataset_path_full)
             os.chmod(self.joined_dataset_path_full,0o775)
             os.chown(self.joined_dataset_path_full,1000,1000)
-        self.all_files = self.merge_pointclouds(self.upper_folders)
+
+        if self.no_labels == False:
+            self.joined_labels = join(self.dataset_path_full,'labels')
+            if not os.path.exists(self.joined_labels):
+                os.mkdir(self.joined_labels)
+                os.chmod(self.joined_labels,0o775)
+                os.chown(self.joined_labels,1000,1000)
+
+        self.merge_pointclouds(self.upper_folders)
 
 
     def merge_pointclouds(self,upper_folders):
@@ -42,6 +52,12 @@ class JRDBPreprocessing():
         idx = 0
         # for each pair, update calibration to same frame, merge pointclouds, and rename the pcd
         for folder in upper_folders:
+            data = []
+            if self.no_labels==False:
+                f = open(join(self.dataset_path_full,'..','labels','labels_3d',folder+'.json'))
+                print('Opening label file for ',f)
+                data = json.load(f)
+
             print('Folder path: ',folder)
             upper_folder_glob = glob(join(self.dataset_path_full,'upper_velodyne',folder, '*.pcd'))
             upper_folder_glob.sort()
@@ -69,6 +85,27 @@ class JRDBPreprocessing():
                 # convert idx into 6 digit number
                 index_str = str(idx).zfill(6)
                 o3d.io.write_point_cloud(join(self.joined_dataset_path_full,index_str+'.pcd'),jointpc)
+
+                # check if label exists. Load JSON label data and save in text file
+                if self.no_labels==False:
+                    labelpath = join(self.joined_labels,index_str+'.txt')
+                    # open file for writing
+                    label_file = open(labelpath,'w')
+
+                    people = data['labels'][index_str+'.pcd']
+                    # iterate people
+                    for person in people:
+                        towrite = []
+                        box = person['box']
+                        for attr in box:
+                            towrite.appenc(box[attr])
+                        # change order to fit BEVBox3D
+                        # x, y, z, width, height, depth, yaw
+                        towrite[3], towrite[4:] = towrite[-1], towrite[3:-1]
+                        label_file.write(" ".join(str(item) for item in towrite))
+                        # label and confidence for BEVBox3D
+                        label_file.write(' Pedestrian -1.0\n')
+                    label_file.close()
                 idx+=1
 
 
