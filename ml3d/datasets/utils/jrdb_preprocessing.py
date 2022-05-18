@@ -4,6 +4,7 @@ import math
 import os, sys
 from os.path import exists, join, isfile, dirname, abspath, split
 from glob import glob
+from pathlib import Path
 
 import open3d as o3d
 from open3d_ros_helper import open3d_ros_helper as orh
@@ -30,10 +31,14 @@ class JRDBPreprocessing():
         # JRDB dataset has identical folder names between upper and lower velodyne.
         self.upper_folders = glob(join(self.dataset_path_full, 'upper_velodyne','*'))
         self.upper_folders.sort()
-        
+
         # check if joined folder exists - mkdir if so
         self.joined_dataset_path_full = join(self.dataset_path_full,'both_velodyne')
-        if not os.path.exists(self.joined_dataset_path_full):
+        #  check if folders already exist - basic indication that preprocessing has been done
+        if os.path.exists(self.joined_dataset_path_full):
+            print('Pre-processing has been done. both_velodyne folder exists.')
+            sys.exit(0)
+        else:
             os.mkdir(self.joined_dataset_path_full)
             os.chmod(self.joined_dataset_path_full,0o755)
             os.chown(self.joined_dataset_path_full,1000,1000)
@@ -45,6 +50,7 @@ class JRDBPreprocessing():
                 os.chmod(self.joined_labels,0o755)
                 os.chown(self.joined_labels,1000,1000)
 
+        print('Merging pointclouds and generating labels')
         self.merge_pointclouds(self.upper_folders)
 
         if self.no_labels == False:
@@ -62,9 +68,13 @@ class JRDBPreprocessing():
         idx = 0
         # for each pair, update calibration to same frame, merge pointclouds, and rename the pcd
         for folder in upper_folders:
+            folderidx = 0
             data = []
             if self.no_labels==False:
-                f = open(join(self.dataset_path_full,'..','labels','labels_3d',folder+'.json'))
+                currpath = Path(self.dataset_path_full)
+                parentpath = str(currpath.parent.resolve())
+                jsonpath = join(parentpath,'labels','labels_3d',os.path.basename(folder)+'.json')
+                f = open(jsonpath)
                 print('Opening label file for ',f)
                 data = json.load(f)
 
@@ -102,7 +112,7 @@ class JRDBPreprocessing():
                     # open file for writing
                     label_file = open(labelpath,'w')
 
-                    people = data['labels'][index_str+'.pcd']
+                    people = data['labels'][str(folderidx).zfill(6)+'.pcd']
                     # iterate people
                     for person in people:
                         towrite = []
@@ -123,13 +133,17 @@ class JRDBPreprocessing():
                         label_file.write(' Pedestrian -1.0\n')
                     label_file.close()
                 idx+=1
+                folderidx+=1
 
 
 if __name__ == '__main__':
+    print('Note: roscore required for numpy_ros functionalities.')
     if len(sys.argv) == 3:
         print('Input argument for dataset_path: ',sys.argv[1],' Input calib_folder: ',sys.argv[2])
-        print('Note: roscore required for numpy_ros functionalities.')
         proc = JRDBPreprocessing(dataset_path=sys.argv[1],calib_folder=sys.argv[2])
+    elif len(sys.argv) == 4:
+        print('Input argument for dataset_path: ',sys.argv[1],' Input calib_folder: ',sys.argv[2], ' No labels to process ')
+        proc = JRDBPreprocessing(dataset_path=sys.argv[1],calib_folder=sys.argv[2],no_labels=True)
     else:
         print('No input argument given. Must use two arguments: jrdb dataset path, folder where the calibration yaml files exist.')
 
