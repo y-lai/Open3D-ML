@@ -59,7 +59,7 @@ class JRDBPreprocessing():
                     os.chmod(join(root,momo),0o755)
                     os.chown(join(root, momo), 1000, 1000)
                 for momo in files:
-                    os.chmod(join(root,momo),0o755)
+                    os.chmod(join(root,momo),0o766)
                     os.chown(join(root, momo), 1000, 1000)
 
 
@@ -110,7 +110,7 @@ class JRDBPreprocessing():
                 if self.no_labels==False:
                     labelpath = join(self.joined_labels,index_str+'.txt')
                     # open file for writing
-                    label_file = open(labelpath,'w')
+                    label_file = open(labelpath,'w',encoding='utf-8')
 
                     people = data['labels'][str(folderidx).zfill(6)+'.pcd']
                     # iterate people
@@ -128,9 +128,10 @@ class JRDBPreprocessing():
                             # Add pi/2 since yaw starts at +x
                             val -= 3*math.pi/2
                             towrite[-1] = str(val)
-                        label_file.write(" ".join(str(item) for item in towrite))
+                        label_file.write(' '.join(str(item) for item in towrite))
                         # label and confidence for BEVBox3D
-                        label_file.write(' Pedestrian -1.0\n')
+                        label_file.write(' Pedestrian -1.0')
+                        label_file.write('\r\n')
                     label_file.close()
                 idx+=1
                 folderidx+=1

@@ -444,9 +444,11 @@ Please cite our work ([pdf](https://arxiv.org/abs/1801.09847)) if you use Open3D
 ## Contributions since fork (Yujun Lai)
 * Added [JRDB dataset](https://jrdb.erc.monash.edu/dataset/) into DATASET registry of Open3D-ML, including pre-processing script to convert directly from unzipped JRDB dataset into KITTI format for training, validation, and testing
 * updated run_pipeline.py script to utilise internal modules rather than default open3d.ml (debian if pip installed)
+* updated Open3D-ML utilities in relation to custom datasets to use internal modules rather than default open3d.ml
 
 ### Notes
 * Preprocessing script merges pointclouds from 2 Velodyne VLP-16 on the JackRabbot into a single pcd in robot base frame, and converts JSON labels into .txt files for each corresponding .pcd - matching KITTI dataset format
+* for model where augmentation is conducted, ground truth labels need to be collected. Run scripts/collect_bboxes.py to provide the necessary .pkl file for augmentation. Refer to script for use case
 
 ### TODO
 * remove reliance on numpy-ros for pre-processing. Currently requires a roscore to be running since conversion from .pcd to numpy for concatenation is convoluted.

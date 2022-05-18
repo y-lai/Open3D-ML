@@ -274,7 +274,8 @@ class ObjectDetection(BasePipeline):
         train_loader = DataLoader(
             train_split,
             batch_size=cfg.batch_size,
-            num_workers=cfg.get('num_workers', 4),
+            # num_workers=cfg.get('num_workers', 4),
+            num_workers=cfg.get('num_workers', 0),
             pin_memory=cfg.get('pin_memory', False),
             collate_fn=batcher.collate_fn,
             worker_init_fn=lambda x: np.random.seed(x + np.uint32(

@@ -2,8 +2,8 @@ import logging
 from os.path import join
 import argparse
 import pickle
-from open3d.ml.datasets import utils
-from open3d.ml import datasets
+from ml3d.datasets import utils
+from ml3d import datasets
 import multiprocessing
 
 

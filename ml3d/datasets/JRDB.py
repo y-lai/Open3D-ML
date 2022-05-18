@@ -1,8 +1,10 @@
+from multiprocessing.sharedctypes import Value
 import numpy as np
 from os.path import exists, join, isfile, dirname, abspath, split
 from pathlib import Path
 from glob import glob
 import logging
+import codecs
 
 from .utils.jrdb_preprocessing import JRDBPreprocessing
 
@@ -53,22 +55,45 @@ class JRDB(BaseDataset):
         assert(Path(join(self.train_dataset_path,'both_velodyne')).exists())
         assert(Path(join(self.test_dataset_path,'both_velodyne')).exists())
 
+        self.all_label_files = glob(join(self.train_dataset_path,'labels','*.txt'))
+        self.all_label_files.sort()
         self.all_train_files = glob(join(self.train_dataset_path, 'both_velodyne', '*.pcd'))
         self.all_train_files.sort()
         print('Length of all files: ',len(self.all_train_files),'. Validation split at 70\% - no. of files: ',int(len(self.all_train_files)*0.7))
         self.train_files = self.all_train_files[:int(len(self.all_train_files)*0.7)]
+        self.train_label_files = self.all_label_files[:int(len(self.all_train_files)*0.7)]
         self.val_files = self.all_train_files[int(len(self.all_train_files)*0.7)+1:]
+        self.val_label_files = self.all_label_files[int(len(self.all_train_files)*0.7)+1:]
 
         self.test_files = glob(join(self.test_dataset_path, 'both_velodyne', '*.pcd'))
         self.test_files.sort()
 
+    def get_split_list(self, split):
+        if split in ['train','training']:
+            return self.train_files
+        elif split in ['test', 'testing']:
+            return self.test_files
+        elif split in ['val', 'validation']:
+            return self.val_files
+        elif split in ['all']:
+            return self.train_files + self.val_files + self.train_files
+        else:
+            raise ValueError("Invalid split {}".format(split))
+
+    def get_label_list(self, split):
+        if split in ['train','training']:
+            return self.train_label_files
+        elif split in ['val','validation']:
+            return self.val_label_files
+        elif split in ['all']:
+            return self.train_label_files + self.val_label_files
+        elif split in ['test','testing']:
+            return []
+        else:
+            raise ValueError("Invalid split {} for label files".format(split))
 
     def get_split(self, split):
-        # check if split is correct
-        if split == 'train' or split == 'test':
-            return JRDBSplit(self, split=split)
-        else:
-            raise Exception("You can only use 'train' or 'test' in the split when using get_split function for JRDB dataset.")
+        return JRDBSplit(self, split=split)
 
     @staticmethod
     def get_label_to_names():
@@ -89,7 +114,7 @@ class JRDB(BaseDataset):
         label = []
         if not Path(path).exists():
             return []
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         objects = []
         for line in lines:
@@ -108,7 +133,7 @@ class JRDB(BaseDataset):
         for attr, res in zip(attrs, results):
             name =attr['name']
             path = join(self.cfg.test_result_folder, name + '.txt')
-            f = open(path, 'W')
+            f = open(path, 'w')
             # update BEVBox3D to save results (potentially can remove this since not visualising trained data)
             for box in res:
                 f.write(box.to_kitti_format(box.confidence))
@@ -119,14 +144,8 @@ class JRDBSplit():
     def __init__(self, dataset, split='train'):
         self.split = split
         self.dataset = dataset
-        self.path_list = []
-        # show path list of train or test
-        if self.split=='training':
-            self.path_list = dataset.train_files
-        if self.split=='validation':
-            self.path_list = dataset.val_files
-        if self.split=='test':
-            self.path_list = dataset.test_files
+        self.path_list = dataset.get_split_list(split)
+        self.label_path_list = dataset.get_label_list(split)
 
     def __len__(self):
         return len(self.path_list)
@@ -134,7 +153,8 @@ class JRDBSplit():
     def get_data(self, idx):
         path  = self.path_list[idx]
         pointcloud = self.dataset.read_pointcloud(path)
-        label = self.dataset.read_label(path)
+        labelpath = self.label_path_list[idx]
+        label = self.dataset.read_label(labelpath)
 
         # convert to KITTI data style from KITTISplit
         return {
@@ -147,8 +167,8 @@ class JRDBSplit():
 
     def get_attr(self,idx):
         path = self.path_list[idx]
-        name = path.split('/')[-1]
-        return {'name': name, 'path:': path, 'split': self.split}
+        name = Path(path).name.split('.')[0]
+        return {'name': name, 'path': path, 'split': self.split}
 
 
 DATASET._register_module(JRDB)

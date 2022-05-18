@@ -55,10 +55,8 @@ def parse_args():
     return args, vars(args_extra)
 
 
-# import open3d.ml as _ml3d
 import ml3d as _ml3d
 import ml3d.utils as _mlutils
-# import ml3d.utils
 
 
 def main():
