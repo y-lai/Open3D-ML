@@ -153,16 +153,19 @@ class JRDBSplit():
     def get_data(self, idx):
         path  = self.path_list[idx]
         pointcloud = self.dataset.read_pointcloud(path)
-        labelpath = self.label_path_list[idx]
-        label = self.dataset.read_label(labelpath)
+        if self.label_path_list == []:
+            label = []
+        else:
+            labelpath = self.label_path_list[idx]
+            label = self.dataset.read_label(labelpath)
 
         # convert to KITTI data style from KITTISplit
         return {
-            'point': pointcloud,
-            'full_point': pointcloud,
-            'feat': None,
-            'calib': None,
-            'bounding_boxes': label,
+            "point": pointcloud,
+            "full_point": pointcloud,
+            "feat": None,
+            "calib": None,
+            "bounding_boxes": label,
         }
 
     def get_attr(self,idx):
