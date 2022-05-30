@@ -98,6 +98,8 @@ class JRDBPreprocessing():
                 upper_pc = self.calib.move_lidar_to_camera_frame(upper_torch, upper=True)
                 lower_pc = self.calib.move_lidar_to_camera_frame(lower_torch, upper=False)
                 joined_pc = torch.cat([upper_pc, lower_pc], dim=0)
+                # added this to re-frame pointcloud from camera z-outward frame to robot x-outward frame
+                joined_pc = self.calib.project_ref_to_velo(joined_pc)
                 joined_np = joined_pc.numpy()
 
                 jointpc = o3d.geometry.PointCloud()

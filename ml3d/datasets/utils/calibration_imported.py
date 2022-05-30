@@ -257,6 +257,12 @@ class OmniCalibration(Calibration):
         pointcloud[:, 1] *= -1
 
         return pointcloud
+    
+    def project_ref_to_velo(self, pointcloud):
+        pointcloud[:, 1] *= -1
+        pointcloud[:, 0] *= -1
+        pointcloud= pointcloud[:, [2, 0, 1]]
+        return pointcloud
 
     def move_lidar_to_camera_frame(self, pointcloud, upper = True):
         # assumed only rotation about z axis
