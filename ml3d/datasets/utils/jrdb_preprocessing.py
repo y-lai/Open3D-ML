@@ -13,18 +13,15 @@ import rospy
 import ros_numpy
 import torch
 
-from ml3d.datasets.utils.calibration_imported import OmniCalibration
 import json
+import signal
 
 class JRDBPreprocessing():
     ''''Pre-processing class to merge pointcloud from both velodynes on the JackRabbot.'''
     def __init__(self,
-                 calib_folder,
                  dataset_path,
                  no_labels=False):
         rospy.init_node('jrdb_preprocessing_node',anonymous=True)
-        self.calib_folder = calib_folder
-        self.calib = OmniCalibration(calib_folder=self.calib_folder)
         self.dataset_path_full = dataset_path
         self.no_labels = no_labels
         
@@ -95,11 +92,9 @@ class JRDBPreprocessing():
 
                 upper_torch = torch.from_numpy(upper_pc.view(np.float32).reshape(upper_pc.shape + (-1,)))[:, [0,1,2]]
                 lower_torch = torch.from_numpy(lower_pc.view(np.float32).reshape(lower_pc.shape + (-1,)))[:, [0,1,2]]
-                upper_pc = self.calib.move_lidar_to_camera_frame(upper_torch, upper=True)
-                lower_pc = self.calib.move_lidar_to_camera_frame(lower_torch, upper=False)
+                upper_pc = self.convert_to_base_chassis_tf(upper_torch, upper=True)
+                lower_pc = self.convert_to_base_chassis_tf(lower_torch, upper=False)
                 joined_pc = torch.cat([upper_pc, lower_pc], dim=0)
-                # added this to re-frame pointcloud from camera z-outward frame to robot x-outward frame
-                joined_pc = self.calib.project_ref_to_velo(joined_pc)
                 joined_np = joined_pc.numpy()
 
                 jointpc = o3d.geometry.PointCloud()
@@ -130,6 +125,9 @@ class JRDBPreprocessing():
                             # Add pi/2 since yaw starts at +x
                             val -= 3*math.pi/2
                             towrite[-1] = str(val)
+                        # labels are in the rotational reference for upper_velodyne, translational reference for rgb camera.
+                        # changing z value to match height
+                        towrite[2] = str((float(towrite[2])-1.077382))
                         label_file.write(' '.join(str(item) for item in towrite))
                         # label and confidence for BEVBox3D
                         label_file.write(' Pedestrian -1.0')
@@ -138,17 +136,33 @@ class JRDBPreprocessing():
                 idx+=1
                 folderidx+=1
 
+    def convert_to_base_chassis_tf(self, pointcloud, upper=True):
+        if upper:
+            pointcloud[:,:3] -= torch.Tensor([-0.019685, 0, 1.077382]).type(pointcloud.type())
+            theta = 0.085
+        else:
+            pointcloud[:,:3] -= torch.tensor([-0.019685, 0, 0.606982]).type(pointcloud.type())
+            theta = 0
+
+        rot_mat = torch.Tensor([[np.cos(theta), -np.sin(theta)], [np.sin(theta),np.cos(theta)]]).type(pointcloud.type())
+        pointcloud[:, :2] = torch.matmul(rot_mat,pointcloud[:,:2].unsqueeze(2)).squeeze()
+        return pointcloud
+
+def signal_handler(sig, frame):
+    print('SIGINT obtained from Ctrl+C')
+    sys.exit(0)
 
 if __name__ == '__main__':
     print('Note: roscore required for numpy_ros functionalities.')
-    if len(sys.argv) == 3:
-        print('Input argument for dataset_path: ',sys.argv[1],' Input calib_folder: ',sys.argv[2])
-        proc = JRDBPreprocessing(dataset_path=sys.argv[1],calib_folder=sys.argv[2])
-    elif len(sys.argv) == 4:
-        print('Input argument for dataset_path: ',sys.argv[1],' Input calib_folder: ',sys.argv[2], ' No labels to process ')
-        proc = JRDBPreprocessing(dataset_path=sys.argv[1],calib_folder=sys.argv[2],no_labels=True)
+    signal.signal(signal.SIGINT, signal_handler)
+    if len(sys.argv) == 2:
+        print('Input argument for dataset_path: ',sys.argv[1])
+        proc = JRDBPreprocessing(dataset_path=sys.argv[1])
+    elif len(sys.argv) == 3:
+        print('Input argument for dataset_path: ',sys.argv[1],' No labels to process ')
+        proc = JRDBPreprocessing(dataset_path=sys.argv[1],no_labels=True)
     else:
-        print('No input argument given. Must use two arguments: jrdb dataset path, folder where the calibration yaml files exist.')
+        print('No input argument given. Must use at least argument: jrdb dataset path.')
 
 
 
