@@ -54,6 +54,7 @@ class ObjectDetection(BasePipeline):
         model = self.model
 
         model.eval()
+        # model.train()
 
         # If run_inference is called on raw data.
         if isinstance(data, dict):

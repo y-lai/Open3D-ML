@@ -1,12 +1,12 @@
 dataset:
   name: JRDB
-  dataset_path: /workspace/jrdb/
+  dataset_path: /home/ylai/Downloads/jrdb/
   cache_dir: ./logs/cache
-  steps_per_epoch_train: 18500 # 2/3 of all training dataset
+  steps_per_epoch_train: 18500
 
 model:
   name: PointPillars
-  ckpt_path: 
+  ckpt_path: /workspace/catkin_ws/src/pointpillar_ros/configs/pointpillars_jrdb.pth #<name-of-model>.pth
 
   batcher: "ignore"
 
@@ -77,7 +77,7 @@ model:
 pipeline:
   name: ObjectDetection
   test_compute_metric: true
-  batch_size: 24
+  batch_size: 6
   val_batch_size: 1
   test_batch_size: 1
   save_ckpt_freq: 5
