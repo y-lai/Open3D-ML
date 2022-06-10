@@ -5,9 +5,7 @@ from pathlib import Path
 from glob import glob
 import logging
 import codecs
-
-from .utils.jrdb_preprocessing import JRDBPreprocessing
-
+# from .utils.jrdb_preprocessing import JRDBPreprocessing
 from .base_dataset import BaseDataset
 from ..utils import make_dir, DATASET
 from .utils import BEVBox3D
@@ -46,13 +44,13 @@ class JRDB(BaseDataset):
         
         # assume that JRDB dataset is pre-processed. Pointclouds are merged using JRDBPreprocessing class
         if not Path(join(self.train_dataset_path,'both_velodyne')).exists():
-            print('Training dataset has not been pre-processed. Initialising pre-process')
-            JRDBPreprocessing(calib_folder=self.calib_folder,dataset_path=self.train_dataset_path)
-        if not Path(join(self.test_dataset_path,'both_velodyne')).exists():
-            print('Testing dataset has not been pre-processed. Initialising pre-process')
-            JRDBPreprocessing(calib_folder=self.calib_folder,dataset_path=self.test_dataset_path,no_labels=True)
-
+            print('Training dataset has not been pre-processed. Assertion will fail.')
+            # JRDBPreprocessing(calib_folder=self.calib_folder,dataset_path=self.train_dataset_path)
         assert(Path(join(self.train_dataset_path,'both_velodyne')).exists())
+
+        if not Path(join(self.test_dataset_path,'both_velodyne')).exists():
+            print('Testing dataset has not been pre-processed. Assertion will fail.')
+            # JRDBPreprocessing(calib_folder=self.calib_folder,dataset_path=self.test_dataset_path,no_labels=True)
         assert(Path(join(self.test_dataset_path,'both_velodyne')).exists())
 
         self.all_label_files = glob(join(self.train_dataset_path,'labels','*.txt'))

@@ -1,6 +1,6 @@
 dataset:
   name: JRDB
-  dataset_path: /home/ylai/Downloads/jrdb/
+  dataset_path: /workspace/jrdb/
   cache_dir: ./logs/cache
   steps_per_epoch_train: 18500
 

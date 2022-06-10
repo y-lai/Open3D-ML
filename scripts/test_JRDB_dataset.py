@@ -21,26 +21,27 @@ if __name__ == '__main__':
         print('One argument required: <Path-to-config-file>')
         sys.exit(0)
         
+    signal.signal(signal.SIGINT, signal_handler)
     cfgpath = sys.argv[1]
     
     cfg = Config.load_from_file(cfgpath)
     model = _ml3d.models.PointPillars(**cfg.model)
     
     dataset = JRDB(cfg.dataset.pop('dataset_path', None),**cfg.dataset)    
-    pipeline = _ml3d.ObjectDetection(model,dataset=dataset, device="cpu", **cfg.pipeline)
-    pipeline.load_ckpt(ckpt_path=model.cfg['cpkt_path'])
+    pipeline = _ml3d.ObjectDetection(model,dataset=dataset, device="gpu", **cfg.pipeline)
+    pipeline.load_ckpt(ckpt_path=model.cfg['ckpt_path'])
     
     testsplit = dataset.get_split('test')
     
-    for idx in range(0,testsplit.__len__-1):
+    for idx in range(len(testsplit)):
         data = testsplit.get_data(idx)
         result = pipeline.run_inference(data)
         
         boxes = data['bounding_boxes']
         boxes.extend(result[0])
         
-        visdata = [{'name': 'pointcloud', 'points':np.asarray(data['point'])}]
+        visdata = [{'name': 'pointcloud', 'points': data['point']}]
         vis = Visualizer()
-        vis.visualize(data,lut=None,bounding_boxes=boxes)
+        vis.visualize(visdata,lut=None,bounding_boxes=boxes)
         
         
