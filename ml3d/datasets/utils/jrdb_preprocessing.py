@@ -127,7 +127,8 @@ class JRDBPreprocessing():
                             towrite[-1] = str(val)
                         # labels are in the rotational reference for upper_velodyne, translational reference for rgb camera.
                         # changing z value to match height
-                        towrite[2] = str((float(towrite[2])+0.4704))
+                        # towrite[2] = str((float(towrite[2])-0.4704))
+                        towrite[2] = str((float(towrite[2])))
                         label_file.write(' '.join(str(item) for item in towrite))
                         # label and confidence for BEVBox3D
                         label_file.write(' Pedestrian -1.0')
@@ -138,10 +139,13 @@ class JRDBPreprocessing():
 
     def convert_to_base_chassis_tf(self, pointcloud, upper=True):
         if upper:
-            pointcloud[:,:3] += torch.Tensor([-0.019685, 0, 1.077382]).type(pointcloud.type())
-            theta = 0.085
+            pointcloud[:,:3] += torch.Tensor([-0.019685, 0, 0]).type(pointcloud.type())
+            # pointcloud[:,:3] += torch.Tensor([-0.019685, 0, -1.077382]).type(pointcloud.type())
+            # theta = 0.085
+            theta = 0
         else:
-            pointcloud[:,:3] += torch.tensor([-0.019685, 0, 0.606982]).type(pointcloud.type())
+            pointcloud[:,:3] += torch.tensor([-0.019685, 0, 0]).type(pointcloud.type())
+            # pointcloud[:,:3] += torch.tensor([-0.019685, 0, -0.606982]).type(pointcloud.type())
             theta = 0
 
         rot_mat = torch.Tensor([[np.cos(theta), -np.sin(theta)], [np.sin(theta),np.cos(theta)]]).type(pointcloud.type())

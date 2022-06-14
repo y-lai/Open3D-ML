@@ -6,7 +6,7 @@ dataset:
 
 model:
   name: PointPillars
-  ckpt_path: /workspace/catkin_ws/src/pointpillar_ros/configs/pointpillars_jrdb.pth #<name-of-model>.pth
+  ckpt_path: #/workspace/catkin_ws/src/pointpillar_ros/configs/pointpillars_jrdb.pth #<name-of-model>.pth
 
   batcher: "ignore"
 

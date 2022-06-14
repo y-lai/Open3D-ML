@@ -17,6 +17,7 @@ def viewTrainingSet():
     for (label_path,pcd_path) in zip(all_labels,all_pointcloud):
         assert Path(pcd_path).exists()
         assert Path(label_path).exists()
+        # print('Showing pointcloud: ',pcd_path)
         
         pointcloud = o3d.io.read_point_cloud(pcd_path)
         
